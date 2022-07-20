@@ -1,4 +1,17 @@
-from astar import astar
+from astar_sol import astar
+
+import serial
+import time
+
+ser = serial.Serial('/dev/ttyACM0')
+
+keyBoard = {
+    'UP': ('z', (0, 1)),
+    'DOWN': ('s', (0, -1)),
+    'LEFT': ('q', (1, 0)),
+    'RIGHT': ('d', (-1, 0))
+}
+
 
 def getNodes(fileName):
     with open(fileName) as f:
@@ -28,41 +41,86 @@ def convertToListOfPositive(nodes, xMin, yMin):
 
     return [(x[0]+xPositiveMin, x[1] + yPositiveMin) for x in nodes]
 
-nodes = getNodes('data-position.csv')
-nodes = toInt(nodes)
+def writeInstructions(fileName, instructions):
+    with open(fileName, 'w') as f:
+        for i in instructions:
+            f.write(i+'\n')
 
-gridSize = 40
+def getInstructions(path, currentPosition):
+    inst = []
+    for p in range(1, len(path)):
+        direction = (path[p][0]-currentPosition[0], path[p][1]-currentPosition[1])
+        if direction == keyBoard['UP'][1]:
+            inst.append(keyBoard['UP'][0])
+        if direction == keyBoard['DOWN'][1]:
+            inst.append(keyBoard['DOWN'][0])
+        if direction == keyBoard['LEFT'][1]:
+            inst.append(keyBoard['LEFT'][0])
+        if direction == keyBoard['RIGHT'][1]:
+            inst.append(keyBoard['RIGHT'][0])
+        currentPosition = path[p]
 
-xMin = min(x[0] for x in nodes)
-xMax = max(x[0] for x in nodes)
-yMin = min(x[1] for x in nodes)
-yMax = max(x[1] for x in nodes)
+    return inst
 
-xPositiveMin = xMin
-if xMin < 0:
-    xPositiveMin *= -1
+def control(inst):
+    i = 0
+    while i<10:
+        i += 1
+        time.sleep(0.1)
+        ser.write(inst[0].encode())
+        
 
-yPositiveMin = yMin
-if yMin < 0:
-    yPositiveMin *= -1
+def process():
+    nodes = getNodes('data-position.csv')
+    nodes = toInt(nodes)
 
-nodes = convertToListOfPositive(nodes, xMin, yMin)
-#print(nodes)
+    gridSize = 10
 
-w, h = (xMax - xMin)//gridSize + 1, (yMax - yMin)//gridSize + 1
-matrix = [[0 for i in range(w)] for j in range(h)]
+    xMin = min(x[0] for x in nodes)
+    xMax = max(x[0] for x in nodes)
+    yMin = min(x[1] for x in nodes)
+    yMax = max(x[1] for x in nodes)
 
-for node in nodes:
-    matrix[int(node[1]//gridSize)][int(node[0]//gridSize)] = 1
+    xPositiveMin = xMin
+    if xMin < 0:
+        xPositiveMin *= -1
 
-matrix[yPositiveMin//gridSize][xPositiveMin//gridSize] = 0    
-matrix[h//2][w-1] = 0  
+    yPositiveMin = yMin
+    if yMin < 0:
+        yPositiveMin *= -1
 
-printMatrix(matrix)
+    nodes = convertToListOfPositive(nodes, xMin, yMin)
+    #print(nodes)
 
-start = (yPositiveMin//gridSize, xPositiveMin//gridSize)
-end = (h//2, w-1)
+    w, h = (xMax - xMin)//gridSize + 20, (yMax - yMin)//gridSize + 20
+    matrix = [[0 for i in range(w)] for j in range(h)]
 
-path = astar(matrix, start, end)
+    for node in nodes:
+        matrix[int(node[1]//gridSize)][int(node[0]//gridSize)] = 1
 
-print(path)
+    matrix[4][12] = 1
+    #matrix[yPositiveMin//gridSize][xPositiveMin//gridSize] = 0    
+    #matrix[h//2][w-1] = 0  
+
+    printMatrix(matrix)
+
+    start = (yPositiveMin//gridSize, xPositiveMin//gridSize)
+    #i = 0
+    #while matrix[i][w-1] == 1:
+    #    i += 1
+    #if i > h:
+    #    i = h//2
+    end = (h//2, w-1)
+
+    path = astar(matrix, start, end)
+
+    print(start, end)
+    print(path)
+
+    inst = getInstructions(path, start)
+    #writeInstructions('instructions.txt', inst)
+    print(inst)
+    control(inst)
+
+if __name__ == '__main__':
+    process()
