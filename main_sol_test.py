@@ -1,15 +1,15 @@
 from astar_sol import astar
 
-import serial
+#import serial
 import time
 
-ser = serial.Serial('/dev/ttyACM0')
+#ser = serial.Serial('/dev/ttyACM0')
 
 keyBoard = {
-    'UP': ('z', (1, 0)), #0,1
-    'DOWN': ('s', (-1, 0)), #0,-1
-    'LEFT': ('q', (0, 1)), # Test2: 0, -1
-    'RIGHT': ('d', (0, -1)) # Test2: 0, 1
+    'UP': ('z', (0, 1)),
+    'DOWN': ('s', (0, -1)),
+    'LEFT': ('q', (-1, 0)),
+    'RIGHT': ('d', (1, 0))
 }
 
 
@@ -18,7 +18,7 @@ def getNodes(fileName):
         lines = f.readlines()
         nodes = []
         for line in lines:
-            splited = line.split(' , ')
+            splited = line.split(';')
             nodes.append((float(splited[0]), float(splited[1])))
         
         return nodes
@@ -28,7 +28,9 @@ def toInt(nodes):
 
 def printMatrix(matrix):
     for i in matrix:
-        print(i)
+        for j in i:
+            print(j, end="")
+        print("")
 
 def convertToListOfPositive(nodes, xMin, yMin):
     xPositiveMin = xMin
@@ -62,32 +64,19 @@ def getInstructions(path, currentPosition):
 
     return inst
 
-def control(inst):
-    if inst[0] == 's' or inst[0] == 'z':
-        i = 0
-        while i<10:
-            i += 1
-            time.sleep(0.1)
-            ser.write(inst[0].encode())
-
-    if inst[0] == 'q' or inst[0] == 'd':
-        i = 0
-        while i<30:
-            i += 1
-            time.sleep(0.1)
-            ser.write(inst[0].encode())
-    #i = 0
-    #while i<5:
-    #    i += 1
-    #    time.sleep(0.1)
-    #    ser.write(inst[1].encode())
+#def control(inst):
+#    i = 0
+#    while i<10:
+#        i += 1
+#        time.sleep(0.1)
+        #ser.write(inst[0].encode())
         
 
 def process():
     nodes = getNodes('data-position.csv')
     nodes = toInt(nodes)
 
-    gridSize = 125
+    gridSize = 60
 
     xMin = min(x[0] for x in nodes)
     xMax = max(x[0] for x in nodes)
@@ -105,11 +94,27 @@ def process():
     nodes = convertToListOfPositive(nodes, xMin, yMin)
     #print(nodes)
 
+    xMin = min(x[0] for x in nodes)
+    xMax = max(x[0] for x in nodes)
+    yMin = min(x[1] for x in nodes)
+    yMax = max(x[1] for x in nodes)
+
+    xPositiveMin = xMin
+    if xMin < 0:
+        xPositiveMin *= -1
+
+    yPositiveMin = yMin
+    if yMin < 0:
+        yPositiveMin *= -1
+
     w, h = (xMax - xMin)//gridSize + 20, (yMax - yMin)//gridSize + 20
     matrix = [[0 for i in range(w)] for j in range(h)]
 
+    #print(w, h)
+
     for node in nodes:
-        matrix[int(node[1]//gridSize)][int(node[0]//gridSize)] = 1
+        #print('ZZ->[', int(node[1]//gridSize),int(node[0]//gridSize))
+        matrix[int((node[1]-yPositiveMin)//gridSize)][int((node[0]-xPositiveMin)//gridSize)] = 1
 
     #matrix[4][12] = 1
     #matrix[yPositiveMin//gridSize][xPositiveMin//gridSize] = 0    
@@ -123,7 +128,7 @@ def process():
     #    i += 1
     #if i > h:
     #    i = h//2
-    end = (h-1, xPositiveMin//gridSize)
+    end = (h//2, w-1)
 
     path = astar(matrix, start, end)
 
@@ -133,7 +138,7 @@ def process():
     inst = getInstructions(path, start)
     #writeInstructions('instructions.txt', inst)
     print(inst)
-    control(inst)
+    #control(inst)
 
 if __name__ == '__main__':
     process()
