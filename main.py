@@ -7,7 +7,7 @@ import sys, csv, math
     lidar format, the second is the name of the file to save the data in the position format
 """
 from rplidar import RPLidar
-from main_sol import process
+from main_sol import process, SCOPE, process_matrix
 
 
 PORT_NAME = '/dev/ttyUSB0'
@@ -22,7 +22,7 @@ def run(fileNames):
     try:
         print('Recording measurments... Press Crl+C to stop.')
         for scan in lidar.iter_measurments():
-            if(scan[1]==15 and scan[3] <= 500):
+            if(scan[1]==15 and scan[3] <= SCOPE):
                 teta = math.radians(scan[-2])
                 x = scan[-1] * math.cos(teta)
                 y = scan[-1] * math.sin(teta)
@@ -56,4 +56,5 @@ if __name__ == '__main__':
     fileName2 = "data-position.csv"
     while True:
         run([fileName1, fileName2])
-        process()
+        #process()
+        process_matrix()

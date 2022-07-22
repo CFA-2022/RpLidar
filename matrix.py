@@ -1,11 +1,19 @@
+# matrix taille 
+#sX = 2 * SCOPE // gridSize
+
+#sY == SCOPE // gridSize
+
+#Position de robo: matrix[0][SCOPE//gridSize]
+
+
 from astar_sol import astar
 
-#import serial
+import serial
 import time
 
 #ser = serial.Serial('/dev/ttyACM0')
 SCOPE = 500
-gridSize = 125
+gridSize = 40
 
 keyBoard = {
     'UP': ('z', (1, 0)), #0,1
@@ -29,19 +37,8 @@ def toInt(nodes):
     return [(int(x[0]), int(x[1])) for x in nodes]
 
 def printMatrix(matrix):
-    for i in matrix:
-        print(i)
-
-def convertToListOfPositive(nodes, xMin, yMin):
-    xPositiveMin = xMin
-    if xMin < 0:
-        xPositiveMin *= -1
-
-    yPositiveMin = yMin
-    if yMin < 0:
-        yPositiveMin *= -1
-
-    return [(x[0]+xPositiveMin, x[1] + yPositiveMin) for x in nodes]
+    for i in range(len(matrix)-1, -1, -1):
+        print(matrix[i])
 
 def writeInstructions(fileName, instructions):
     with open(fileName, 'w') as f:
@@ -77,59 +74,36 @@ def control(inst):
         while i<30:
             i += 1
             time.sleep(0.1)
-            #ser.write(inst[0].encode())
-    #i = 0
-    #while i<10:
-    #    i += 1
-    #    time.sleep(0.1)
-    #    ser.write(inst[1].encode())
-        
+            #ser.write(inst[0].encode())        
 
 def process():
     nodes = getNodes('data-position.csv')
     nodes = toInt(nodes)
 
-    xMin = min(x[0] for x in nodes)
-    xMax = max(x[0] for x in nodes)
-    yMin = min(x[1] for x in nodes)
-    yMax = max(x[1] for x in nodes)
+    w, h = SCOPE//gridSize + 1, 2*SCOPE//gridSize + 1
 
-    xPositiveMin = xMin
-    if xMin < 0:
-        xPositiveMin *= -1
+    matrix = [[0 for i in range(h)] for j in range(w)]
 
-    yPositiveMin = yMin
-    if yMin < 0:
-        yPositiveMin *= -1
-
-    nodes = convertToListOfPositive(nodes, xMin, yMin)
-    #print(nodes)
-    w, h = (xMax - xMin)//gridSize + 20, (yMax - yMin)//gridSize + 20
-    if xMax - xMin < SCOPE:
-        w = SCOPE // gridSize
-    if yMax - yMin < SCOPE:
-        h = SCOPE // gridSize
-
-    matrix = [[0 for i in range(w)] for j in range(h)]
-
-    #for i in range(0,w):
-    #    for j in range(0,h):
-    #        if (i == 0 or i == w or j == 0 or j == h ):
-    #            matrix[i][j] = 1
-
+    start = (0, SCOPE//gridSize) # index
+    end = (SCOPE//gridSize-1, SCOPE//gridSize) # index
+    pointExtremeMinimun = (-SCOPE, 0) # coordonnees (y,x)
 
     for node in nodes:
-        matrix[int(node[1]//gridSize)][int(node[0]//gridSize)] = 1
+        #if node[1] < 0:
+        #    continue
+        index = ((node[1]-pointExtremeMinimun[1])//gridSize, (node[0] - pointExtremeMinimun[0])//gridSize) # (y,x)
+        print(node, index)
+        matrix[int(index[0])][int(index[1])] = 1
 
-    #matrix[4][12] = 1
-    #matrix[yPositiveMin//gridSize][xPositiveMin//gridSize] = 0    
-    #matrix[h//2][w-1] = 0  
+    #matrix[0][13] = 1
+    #matrix[1][12] = 1
+    #matrix[2][13] = 1
 
     printMatrix(matrix)
 
-    start = (yPositiveMin//gridSize, xPositiveMin//gridSize)
+    start = (0, (h-1)//2)
     
-    end = (h-1, xPositiveMin//gridSize)
+    end = (w-2, (h-1)//2)
 
     path = astar(matrix, start, end)
 
@@ -137,7 +111,6 @@ def process():
     print(path)
 
     inst = getInstructions(path, start)
-    #writeInstructions('instructions.txt', inst)
     print(inst)
     #control(inst)
 

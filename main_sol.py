@@ -4,12 +4,15 @@ import serial
 import time
 
 ser = serial.Serial('/dev/ttyACM0')
+SCOPE = 1000
+gridSize = 150
+defaultSize = 30
 
 keyBoard = {
-    'UP': ('z', (1, 0)), #0,1
-    'DOWN': ('s', (-1, 0)), #0,-1
-    'LEFT': ('q', (0, 1)), # Test2: 0, -1
-    'RIGHT': ('d', (0, -1)) # Test2: 0, 1
+    'UP': ('z', (0, -1)), #0,1
+    'DOWN': ('s', (0, 1)), #0,-1
+    'LEFT': ('q', (1, 0)), # Test2: 0, -1
+    'RIGHT': ('d', (-1, 0)) # Test2: 0, 1
 }
 
 
@@ -77,7 +80,7 @@ def control(inst):
             time.sleep(0.1)
             ser.write(inst[0].encode())
     #i = 0
-    #while i<5:
+    #while i<10:
     #    i += 1
     #    time.sleep(0.1)
     #    ser.write(inst[1].encode())
@@ -86,8 +89,6 @@ def control(inst):
 def process():
     nodes = getNodes('data-position.csv')
     nodes = toInt(nodes)
-
-    gridSize = 125
 
     xMin = min(x[0] for x in nodes)
     xMax = max(x[0] for x in nodes)
@@ -104,9 +105,19 @@ def process():
 
     nodes = convertToListOfPositive(nodes, xMin, yMin)
     #print(nodes)
+    w, h = (xMax - xMin + defaultSize*gridSize)//gridSize, (yMax - yMin + defaultSize*gridSize)//gridSize
+    if xMax - xMin < SCOPE:
+        w = SCOPE // gridSize
+    if yMax - yMin < SCOPE:
+        h = SCOPE // gridSize
 
-    w, h = (xMax - xMin)//gridSize + 20, (yMax - yMin)//gridSize + 20
     matrix = [[0 for i in range(w)] for j in range(h)]
+
+    #for i in range(0,w):
+    #    for j in range(0,h):
+    #        if (i == 0 or i == w or j == 0 or j == h ):
+    #            matrix[i][j] = 1
+
 
     for node in nodes:
         matrix[int(node[1]//gridSize)][int(node[0]//gridSize)] = 1
@@ -118,11 +129,7 @@ def process():
     printMatrix(matrix)
 
     start = (yPositiveMin//gridSize, xPositiveMin//gridSize)
-    #i = 0
-    #while matrix[i][w-1] == 1:
-    #    i += 1
-    #if i > h:
-    #    i = h//2
+    
     end = (h-1, xPositiveMin//gridSize)
 
     path = astar(matrix, start, end)
@@ -135,5 +142,54 @@ def process():
     print(inst)
     control(inst)
 
+
+def transform_matrix(matrix, start, end):
+    pass
+
+def process_matrix():
+    nodes = getNodes('data-position.csv')
+    nodes = toInt(nodes)
+
+    w, h = 2*SCOPE//gridSize + 1, 2*SCOPE//gridSize + 1
+
+    matrix = [[0 for i in range(h)] for j in range(w)]
+
+    start = (0, SCOPE//gridSize) # index
+    end = (SCOPE//gridSize-1, SCOPE//gridSize) # index
+    pointExtremeMinimun = (-SCOPE, -SCOPE) # coordonnees (y,x)
+
+    for node in nodes:
+        #if node[1] < 0:
+        #    continue
+        index = ((node[1]-pointExtremeMinimun[1])//gridSize, (node[0] - pointExtremeMinimun[0])//gridSize) # (y,x)
+        #print(node, index)
+        matrix[int(index[0])][int(index[1])] = 1
+
+    #matrix[0][13] = 1
+    #matrix[1][12] = 1
+    #matrix[2][13] = 1
+
+    printMatrix(matrix)
+
+    #start = (0, (h-1)//2)
+    start = (SCOPE//gridSize, SCOPE//gridSize)
+    #end = (w-2, (h-1)//2)
+    i = 0
+    while matrix[i][0] == 1:
+        i += 1
+    end = (i, 0)
+
+    #matrix, start, end = transform_matrix(matrix, start, end)
+
+    path = astar(matrix, start, end)
+
+    print(start, end)
+    print(path)
+
+    inst = getInstructions(path, start)
+    print(inst)
+    control(inst)
+
 if __name__ == '__main__':
-    process()
+    #process()
+    process_matrix()
