@@ -174,7 +174,7 @@ def process_matrix():
     #start = (0, (h-1)//2)
     start = (SCOPE//gridSize, SCOPE//gridSize)
     #end = (w-2, (h-1)//2)
-    i = 0
+    i = (w-1)//2
     while matrix[i][0] == 1:
         i += 1
     end = (i, 0)
